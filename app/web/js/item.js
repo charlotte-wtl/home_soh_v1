@@ -85,6 +85,10 @@ export function mountItem(el, { onBack }) {
           ${consumable ? `<div class="field"><label for="sr">Remind me</label><select id="sr" name="rule">
             <option value="days" ${item.pctLeft ? "" : "selected"}>${item.warnDays ?? d.settings.warnDays} days before it runs out</option>
             <option value="pct" ${item.pctLeft ? "selected" : ""}>When about ${Math.round(d.settings.pctLeft * 100)}% is left</option></select></div>` : ""}
+          <div class="field-pair">
+            <div class="field"><label for="sc">Category</label><select id="sc" name="category">${M.categories(d).map((c) => `<option ${c === item.category ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></div>
+            <div class="field"><label for="st">Type</label><input id="st" name="type" value="${esc(item.type)}"></div>
+          </div>
           <div class="field"><label for="so">Who uses it</label><select id="so" name="owner">
             <option value="">Shared</option>${Object.entries(M.people(d)).map(([k, v]) => `<option value="${k}" ${item.owner === k ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
           <div class="field-pair">
@@ -149,6 +153,7 @@ export function mountItem(el, { onBack }) {
     e.preventDefault();
     const f = formData(e.target);
     await change((d) => M.updateItem(d, itemId, {
+      category: f.category, type: f.type.trim() || M.findItem(d, itemId).type,
       owner: f.owner || null, brand: f.brand.trim(), product: f.product.trim() || M.findItem(d, itemId).product,
       ...(f.rule ? { pctLeft: f.rule === "pct" ? (M.findItem(d, itemId).pctLeft || d.settings.pctLeft) : null } : {}),
     }));
