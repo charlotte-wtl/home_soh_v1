@@ -43,7 +43,7 @@ export function mountHome(el, { onOpenItem, onImport, syncText }) {
     const rem = M.reminders(d);
     const using = M.inUse(d).filter((s) => matches(s.item));
     const paused = M.pausedItems(d).filter((s) => matches(s.item));
-    const cats = ["All", ...M.CATEGORIES.filter((c) => M.inUse(d).some((s) => s.item.category === c))];
+    const cats = ["All", ...M.categories(d).filter((c) => M.inUse(d).some((s) => s.item.category === c))];
     const remCats = new Set(rem.map((r) => r.item.category));
 
     el.innerHTML = `${head()}

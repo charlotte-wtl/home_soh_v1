@@ -5,7 +5,31 @@
 
 import { todayStr, shiftDate, daysBetween } from "./dates.js";
 
-export const CATEGORIES = ["Skincare", "Make up", "Daily Essentials", "Groceries", "Fashion", "Electric Appliances"];
+export const CATEGORIES = [
+  "Skincare", "Make up", "Daily Essentials", "Home Essentials", "Health & Supplements",
+  "Pantry", "Groceries", "Fashion", "Electric Appliances",
+];
+// Food you use up a scoop at a time: remind at "% left" instead of days.
+export const PCT_CATEGORIES = new Set(["Pantry", "Groceries"]);
+export const isPctCategory = (c) => PCT_CATEGORIES.has(c);
+
+// Built-in categories, then ones you added (settings.categories), then any
+// category an item already uses.
+export function categories(doc) {
+  const out = [...CATEGORIES];
+  [...(doc?.settings?.categories || []), ...(doc?.items || []).filter((i) => !i.deleted).map((i) => i.category)]
+    .forEach((c) => { if (c && !out.includes(c)) out.push(c); });
+  return out;
+}
+
+export function addCategory(doc, name) {
+  const n = name.trim().replace(/\s+/g, " ");
+  if (!n) return null;
+  const existing = categories(doc).find((c) => c.toLowerCase() === n.toLowerCase());
+  if (existing) return existing;
+  doc.settings.categories = [...(doc.settings.categories || []), n];
+  return n;
+}
 export const NON_CONSUMABLE = new Set(["Fashion", "Electric Appliances"]);
 // Names are personal, so they live in the private data file (settings.people),
 // never in this public code. These placeholders show until you connect.
@@ -289,7 +313,7 @@ export function addItem(doc, f) {
     consumable: !NON_CONSUMABLE.has(f.category),
     size: f.size ? Number(f.size) : null, unit: f.unit || "ml",
     spares: 0, units: [],
-    warnDays: null, pctLeft: f.category === "Groceries" ? DEFAULT_SETTINGS.pctLeft : null,
+    warnDays: null, pctLeft: isPctCategory(f.category) ? DEFAULT_SETTINGS.pctLeft : null,
     guessDays: f.guessDays ? Number(f.guessDays) : null,
     backupFor: null, archived: false, deleted: false,
     createdAt: now(), updatedAt: now(),

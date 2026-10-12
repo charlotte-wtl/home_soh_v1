@@ -157,3 +157,14 @@ test("merge keeps shopping entries added on both phones", () => {
   M.addToList(b, { text: "Toothbrush head" });
   assert.equal(mergeDocs(a, b).shopping.length, 2);
 });
+
+test("categories: new built-ins, Pantry uses % left, custom categories", () => {
+  const doc = M.emptyDoc();
+  for (const c of ["Home Essentials", "Health & Supplements", "Pantry"]) assert.ok(M.categories(doc).includes(c));
+  assert.ok(M.addItem(doc, { category: "Pantry", type: "Rice", brand: "", product: "Rice" }).pctLeft);
+  assert.ok(!M.addItem(doc, { category: "Home Essentials", type: "Bin bags", brand: "", product: "Bin bags" }).pctLeft);
+  assert.equal(M.addCategory(doc, "  Pet  "), "Pet");
+  assert.equal(M.addCategory(doc, "pet"), "Pet");          // no duplicates
+  assert.ok(M.categories(doc).includes("Pet"));
+  assert.ok(M.addItem(doc, { category: "Pet", type: "Food", brand: "", product: "Food" }).consumable);
+});

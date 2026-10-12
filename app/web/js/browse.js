@@ -12,7 +12,7 @@ export function mountBrowse(el, { onOpenItem }) {
   function render() {
     const d = doc();
     const items = M.liveItems(d);
-    const cats = ["All", ...M.CATEGORIES.filter((c) => items.some((i) => i.category === c))];
+    const cats = ["All", ...M.categories(d).filter((c) => items.some((i) => i.category === c))];
     const shown = items.filter((i) =>
       (f.cat === "All" || i.category === f.cat) &&
       (f.past || !i.archived) &&
@@ -26,7 +26,7 @@ export function mountBrowse(el, { onOpenItem }) {
       groups.get(key).push(i);
     });
     const keys = [...groups.keys()].sort((a, b) =>
-      M.CATEGORIES.indexOf(a.split("|")[0]) - M.CATEGORIES.indexOf(b.split("|")[0]) || a.localeCompare(b));
+      M.categories(d).indexOf(a.split("|")[0]) - M.categories(d).indexOf(b.split("|")[0]) || a.localeCompare(b));
 
     el.innerHTML = `
       <header class="screen-head"><h1>Browse</h1><button type="button" class="btn primary" data-log>Log / Add</button></header>

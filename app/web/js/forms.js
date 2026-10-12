@@ -198,7 +198,8 @@ export function newProductSheet({ onOpenItem } = {}) {
     const draw = () => {
       if (s.step === 1) {
         el.innerHTML = `<h2>New product</h2><p class="hint">Which category?</p>
-          <ul class="list" style="margin-top:8px">${M.CATEGORIES.map((c) => `<li class="row"><button type="button" class="row-link" data-cat="${esc(c)}"><span class="name">${esc(c)}</span></button></li>`).join("")}</ul>`;
+          <ul class="list" style="margin-top:8px">${M.categories(doc()).map((c) => `<li class="row"><button type="button" class="row-link" data-cat="${esc(c)}"><span class="name">${esc(c)}</span></button></li>`).join("")}</ul>
+          <form class="field" data-newcat><label for="nc">New category</label><div style="display:flex;gap:8px"><input id="nc" name="c" placeholder="e.g. Baby, Pet, Car" style="flex:1"><button class="btn">Next</button></div></form>`;
       } else if (s.step === 2) {
         const types = M.typesIn(doc(), s.category);
         el.innerHTML = `<button type="button" class="back" data-back>‹ ${esc(s.category)}</button><h2>What type?</h2>
@@ -216,7 +217,7 @@ export function newProductSheet({ onOpenItem } = {}) {
         el.innerHTML = `<button type="button" class="back" data-back>‹ ${esc(s.brand)}</button><h2>${esc(s.brand)}: ${esc(s.type)}</h2>
           <form novalidate>
             <div class="field"><label for="np">Product name</label><input id="np" name="product" value="${esc(s.type)}" required></div>
-            ${sizeFields({ size: "", unit: s.category === "Groceries" ? "g" : "ml" })}
+            ${sizeFields({ size: "", unit: M.isPctCategory(s.category) ? "g" : "ml" })}
             ${priceFields({ price: "", currency: doc().settings.currency || "AUD" })}
             <div class="field"><label for="ns">Shop</label><input id="ns" name="shop" autocomplete="off"></div>
             <div class="field-pair">
@@ -274,6 +275,13 @@ export function newProductSheet({ onOpenItem } = {}) {
       const br = t.closest("[data-brand]"); if (br) { s.brand = br.dataset.brand; s.step = 4; draw(); }
     });
     el.addEventListener("submit", (e) => {
+      const nc = e.target.closest("[data-newcat]");
+      if (nc) {
+        e.preventDefault();
+        const v = nc.c.value.trim();
+        if (v) change((d) => M.addCategory(d, v)).then((name) => { s.category = name; s.step = 2; draw(); });
+        return;
+      }
       const nt = e.target.closest("[data-newtype]");
       if (nt) { e.preventDefault(); const v = nt.t.value.trim(); if (v) { s.type = v.charAt(0).toUpperCase() + v.slice(1); s.step = 3; draw(); } }
       const nb = e.target.closest("[data-newbrand]");

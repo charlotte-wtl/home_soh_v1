@@ -13,7 +13,7 @@ export function mountMore(el, { onConnect, onDisconnect }) {
     const year = new Date().getFullYear();
     const spent = M.spentInYear(d, year);
     const cost = M.costByCategory(d);
-    const cats = M.CATEGORIES.filter((c) => spent.byCategory[c] || cost.byCategory[c]);
+    const cats = M.categories(d).filter((c) => spent.byCategory[c] || cost.byCategory[c]);
     const me = await getMe();
     const userId = await getUserId();
     const state = await configState();
@@ -50,7 +50,7 @@ export function mountMore(el, { onConnect, onDisconnect }) {
           </div>
           <div class="field-pair">
             <div class="field"><label for="wd">Remind days before empty</label><input id="wd" name="warnDays" type="number" inputmode="numeric" min="1" value="${d.settings.warnDays}"></div>
-            <div class="field"><label for="pl">Groceries: remind at % left</label><input id="pl" name="pctLeft" type="number" inputmode="numeric" min="5" max="90" value="${Math.round(d.settings.pctLeft * 100)}"></div>
+            <div class="field"><label for="pl">Pantry and groceries: remind at % left</label><input id="pl" name="pctLeft" type="number" inputmode="numeric" min="5" max="90" value="${Math.round(d.settings.pctLeft * 100)}"></div>
           </div>
           <button type="submit" class="btn" style="margin-top:16px">Save settings</button>
         </form>

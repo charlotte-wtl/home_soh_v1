@@ -4,7 +4,7 @@
 // Each row is one bottle/pack; rows with the same category + type + brand +
 // product become one item. Importing twice never duplicates an item.
 
-import { uid, NON_CONSUMABLE, liveUnits, isOpenUnit } from "./model.js";
+import { uid, NON_CONSUMABLE, liveUnits, isOpenUnit, isPctCategory } from "./model.js";
 
 export function parseCSV(text) {
   const rows = [];
@@ -59,13 +59,13 @@ export function importRows(doc, rows) {
     if (existing.has(k)) { skipped++; continue; }
     const first = group[0];
     const sizes = group.map((r) => num(r.size)).filter(Boolean);
-    const unitLabel = first.unit === "ml/g" || !first.unit ? (first.category === "Groceries" ? "g" : "ml") : first.unit;
+    const unitLabel = first.unit === "ml/g" || !first.unit ? (isPctCategory(first.category) ? "g" : "ml") : first.unit;
     const item = {
       id: uid("itm"), category: first.category, type: first.type, brand: first.brand, product: first.product,
       owner: first.user && first.user.toLowerCase() !== mainUser ? personKey(first.user) : null,
       consumable: !NON_CONSUMABLE.has(first.category) && first.reminders !== "no",
       size: sizes.length ? sizes[sizes.length - 1] : null, unit: sizes.length ? unitLabel : "pcs",
-      spares: 0, units: [], warnDays: null, pctLeft: first.category === "Groceries" ? 0.3 : null,
+      spares: 0, units: [], warnDays: null, pctLeft: isPctCategory(first.category) ? 0.3 : null,
       guessDays: null, backupFor: null, archived: false, deleted: false, createdAt: stamp, updatedAt: stamp,
     };
     group.forEach((r) => {
