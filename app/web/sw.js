@@ -1,7 +1,7 @@
 // App-shell cache so the list opens with no signal (e.g. in the shop).
 // Data lives in IndexedDB, never in this cache. Network-first, so a new
 // deploy takes effect on the next open — same approach as TCM Tracker.
-const CACHE = "soh-shell-v1";
+const CACHE = "soh-shell-v2";
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -22,6 +22,7 @@ const SHELL_FILES = [
   "./js/more.js",
   "./js/rows.js",
   "./js/store.js",
+  "./js/shop.js",
   "./js/sync.js",
   "./js/ui.js",
 ];

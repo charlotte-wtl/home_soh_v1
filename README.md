@@ -17,13 +17,14 @@ app/web/            the app (deployed as-is, no build step)
 ├── index.html
 ├── css/style.css   Japandi design system (same family as TCM Tracker)
 ├── js/
-│   ├── app.js      shell: 3 tabs, item page, routing, sync, boot
+│   ├── app.js      shell: 4 tabs, item page, routing, sync, boot
 │   ├── model.js    the maths: usage rate per type, run-out dates, statuses,
 │   │               cost, spend. Pure functions, tested in tests/
 │   ├── store.js    the one place screens change data (+ Undo)
 │   ├── home.js     reminders → filters → in use → paused
 │   ├── browse.js   category → type → brand / product
 │   ├── item.js     one product: level, buttons, usage, prices, cost
+│   ├── shop.js     shopping list: free text + running-low suggestions
 │   ├── more.js     spending, settings, account, import / export
 │   ├── forms.js    bottom sheets: Bought, Log / Add, New product, Pause, dates
 │   ├── rows.js     how a product reads in a list

@@ -16,7 +16,7 @@ const RATE_SAMPLE = 5;      // last N finished units make the average
 const CHECK_AFTER_DAYS = 7; // "should be empty" this many days ago → ask
 
 export function emptyDoc() {
-  return { items: [], purchases: [], settings: { ...DEFAULT_SETTINGS } };
+  return { items: [], purchases: [], shopping: [], settings: { ...DEFAULT_SETTINGS } };
 }
 
 export function uid(prefix) {
@@ -385,6 +385,59 @@ export function deletePurchase(doc, purchaseId) {
   const p = doc.purchases.find((x) => x.id === purchaseId);
   p.deleted = true;
   p.updatedAt = now();
+}
+
+/* ---------------- Shopping list ----------------
+   Anything you want to buy: free text (e.g. a new toothbrush head) or a
+   tracked product. Entries are kept with a done flag so both phones agree. */
+
+export const liveList = (doc) => (doc.shopping || []).filter((s) => !s.deleted);
+
+export function shoppingList(doc) {
+  const list = liveList(doc);
+  return {
+    toBuy: list.filter((s) => !s.done).sort((a, b) => a.addedAt - b.addedAt),
+    done: list.filter((s) => s.done).sort((a, b) => b.doneAt - a.doneAt),
+  };
+}
+
+// Reminders (Out / Low) that aren't on the list yet.
+export function listSuggestions(doc, today = todayStr()) {
+  const onList = new Set(liveList(doc).filter((s) => !s.done && s.itemId).map((s) => s.itemId));
+  return reminders(doc, today).filter((st) => (st.status === "out" || st.status === "low") && !onList.has(st.item.id));
+}
+
+// Free text that matches a tracked product's name links to it.
+export function matchItem(doc, text) {
+  const t = text.trim().toLowerCase();
+  if (!t) return null;
+  return liveItems(doc).find((i) => [itemName(i), i.product, `${i.brand} ${i.product}`].some((n) => n && n.toLowerCase() === t)) || null;
+}
+
+export function addToList(doc, { text = "", itemId = null, by = null } = {}) {
+  const linked = itemId ? findItem(doc, itemId) : matchItem(doc, text);
+  const label = linked ? itemName(linked) : text.trim();
+  if (!label) return null;
+  doc.shopping = doc.shopping || [];
+  const dup = liveList(doc).find((s) => !s.done && (linked ? s.itemId === linked.id : s.text.toLowerCase() === label.toLowerCase()));
+  if (dup) return dup;
+  const entry = { id: uid("s"), text: label, itemId: linked?.id || null, by, addedAt: now(), done: false, doneAt: null, deleted: false, updatedAt: now() };
+  doc.shopping.push(entry);
+  return entry;
+}
+
+export function setListDone(doc, entryId, done = true) {
+  const e = doc.shopping.find((s) => s.id === entryId);
+  e.done = done; e.doneAt = done ? now() : null; e.updatedAt = now();
+}
+
+export function removeFromList(doc, entryId) {
+  const e = doc.shopping.find((s) => s.id === entryId);
+  e.deleted = true; e.updatedAt = now();
+}
+
+export function clearDone(doc) {
+  liveList(doc).filter((s) => s.done).forEach((s) => { s.deleted = true; s.updatedAt = now(); });
 }
 
 export { round };

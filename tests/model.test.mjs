@@ -130,3 +130,30 @@ test("imports the cleaned spreadsheet and gets the plan's numbers", async () => 
   const past = doc.items.filter((i) => i.archived).map((i) => i.product);
   assert.ok(past.includes("Skin barrier serum"));
 });
+
+test("shopping list: free text, linked products, no duplicates, suggestions", () => {
+  const doc = M.emptyDoc();
+  const oats = M.addItem(doc, { category: "Groceries", type: "Oats", brand: "BrandW", product: "Oats", size: 500 });
+  M.openOne(doc, oats.id, { date: "2025-11-06" });
+  M.finishOne(doc, oats.id, { date: "2025-12-04" });                 // now Out
+  assert.equal(M.listSuggestions(doc, T).length, 1);
+  M.addToList(doc, { text: "薏米" });
+  M.addToList(doc, { text: "Electric toothbrush head" });
+  M.addToList(doc, { text: "BrandW · Oats" });                        // typed name links to the product
+  M.addToList(doc, { itemId: oats.id });                              // no duplicate
+  const { toBuy } = M.shoppingList(doc);
+  assert.deepEqual(toBuy.map((e) => e.text), ["薏米", "Electric toothbrush head", "BrandW · Oats"]);
+  assert.equal(toBuy[2].itemId, oats.id);
+  assert.equal(M.listSuggestions(doc, T).length, 0);                  // already on the list
+  M.setListDone(doc, toBuy[0].id, true);
+  assert.equal(M.shoppingList(doc).done.length, 1);
+  M.clearDone(doc);
+  assert.equal(M.shoppingList(doc).done.length, 0);
+});
+
+test("merge keeps shopping entries added on both phones", () => {
+  const a = M.emptyDoc(), b = M.emptyDoc();
+  M.addToList(a, { text: "薏米" });
+  M.addToList(b, { text: "Toothbrush head" });
+  assert.equal(mergeDocs(a, b).shopping.length, 2);
+});

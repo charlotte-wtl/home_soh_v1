@@ -10,6 +10,7 @@ let undoStack = [];
 
 export async function load() {
   current = (await getRecord()).doc;
+  current.shopping = current.shopping || [];
   current.settings = { hkdRate: 5.3, warnDays: 14, pctLeft: 0.3, currency: "AUD", ...(current.settings || {}) };
   return current;
 }

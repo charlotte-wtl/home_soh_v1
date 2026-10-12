@@ -162,13 +162,13 @@ async function writeFile(cfg, path, data, sha, message) {
 /* ---------------- Pull / push ---------------- */
 
 function remoteShape(doc, userId) {
-  return { userId, app: "home-soh", version: 1, items: doc.items, purchases: doc.purchases, settings: doc.settings };
+  return { userId, app: "home-soh", version: 1, items: doc.items, purchases: doc.purchases, shopping: doc.shopping || [], settings: doc.settings };
 }
 
 async function applyRemote(sha, data, userId) {
   const local = await getRecord();
   if (sha && local.remoteSha === sha && local.remoteUserId === userId) return false;
-  const remoteDoc = { items: data.items || [], purchases: data.purchases || [], settings: data.settings || {} };
+  const remoteDoc = { items: data.items || [], purchases: data.purchases || [], shopping: data.shopping || [], settings: data.settings || {} };
   const stamp = Date.now();
   if (!isDirty(local)) {
     await putRecord({ doc: { ...emptyDoc(), ...remoteDoc, settings: { ...emptyDoc().settings, ...remoteDoc.settings } }, updatedAt: stamp, syncedAt: stamp, remoteSha: sha, remoteUserId: userId });
@@ -256,7 +256,7 @@ export async function adoptUserId(id) {
   const current = await getUserId();
   if (current && current !== id) {
     const rec = await getRecord();
-    if (isDirty(rec) && (rec.doc.items.length || rec.doc.purchases.length)) return { ok: false, error: "unsynced-other-user" };
+    if (isDirty(rec) && (rec.doc.items.length || rec.doc.purchases.length || (rec.doc.shopping || []).length)) return { ok: false, error: "unsynced-other-user" };
     await deleteMeta(RECORD);
   }
   await setMeta("user_id", id);

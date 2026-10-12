@@ -1,7 +1,7 @@
 // Home: reminders first, then filters, then what's in use, then paused.
 
 import * as M from "./model.js";
-import { doc, getMe } from "./store.js";
+import { doc, getMe, change, undo } from "./store.js";
 import { esc, toast, openSheet } from "./ui.js";
 import { shortDate } from "./dates.js";
 import { itemRow } from "./rows.js";
@@ -49,7 +49,7 @@ export function mountHome(el, { onOpenItem, onImport, syncText }) {
     el.innerHTML = `${head()}
       ${rem.length ? `<section class="section" aria-labelledby="remH" style="margin-top:8px">
         <div class="section-head"><h2 id="remH">Reminders <span class="count">${rem.length}</span></h2>
-          <button type="button" class="btn quiet" data-share>Share list</button></div>
+          ${M.listSuggestions(d).length ? `<button type="button" class="btn quiet" data-tolist>Add to shopping list</button>` : ""}</div>
         <ul class="list panel">${rem.map((st) => itemRow(st, { tag: true, action: reminderAction(st) })).join("")}</ul>
       </section>` : `<p class="soft" style="margin-top:8px">Nothing to buy. ${nextLow(d)}</p>`}
 
@@ -112,12 +112,11 @@ export function mountHome(el, { onOpenItem, onImport, syncText }) {
     }, { label: "Check" });
   }
 
-  async function share() {
-    const text = "Running low:\n" + M.reminders(doc()).map((s) => `- ${M.itemName(s.item)} (${M.STATUS_LABEL[s.status]})`).join("\n");
-    try {
-      if (navigator.share) await navigator.share({ title: "Running low", text });
-      else { await navigator.clipboard.writeText(text); toast("List copied"); }
-    } catch (e) { /* share sheet dismissed */ }
+  async function addRemindersToList() {
+    const me = await getMe();
+    const n = M.listSuggestions(doc()).length;
+    await change((d) => M.listSuggestions(d).forEach((st) => M.addToList(d, { itemId: st.item.id, by: me })));
+    toast(`Added ${n} to the shopping list`, [{ label: "Undo", run: undo }]);
   }
 
   el.addEventListener("click", (e) => {
@@ -126,7 +125,7 @@ export function mountHome(el, { onOpenItem, onImport, syncText }) {
     if (btn("[data-log]")) return logSheet({ onOpenItem });
     if (btn("[data-import]")) return onImport();
     if (btn("[data-newprod]")) return newProductSheet({ onOpenItem });
-    if (btn("[data-share]")) return share();
+    if (btn("[data-tolist]")) return addRemindersToList();
     let b;
     if ((b = btn("[data-bought]"))) return boughtSheet(b.dataset.bought);
     if ((b = btn("[data-finish]"))) return finishNow(b.dataset.finish);

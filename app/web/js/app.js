@@ -6,6 +6,7 @@ import { mountHome } from "./home.js";
 import { mountBrowse } from "./browse.js";
 import { mountItem } from "./item.js";
 import { mountMore } from "./more.js";
+import { mountShop } from "./shop.js";
 import { openConnect, offlineThisSession } from "./connect.js";
 import { configState, pull, setStatusListener, disconnect } from "./sync.js";
 
@@ -15,11 +16,13 @@ app.innerHTML = `
     <section class="screen" id="s-home" aria-label="Home"></section>
     <section class="screen" id="s-browse" aria-label="Browse" hidden></section>
     <section class="screen" id="s-item" aria-label="Product" hidden></section>
+    <section class="screen" id="s-shop" aria-label="Shopping list" hidden></section>
     <section class="screen" id="s-more" aria-label="More" hidden></section>
   </main>
   <nav class="nav" aria-label="Main"><div class="nav-inner">
     <button type="button" data-tab="home">${ICONS.home}<span>Home</span></button>
     <button type="button" data-tab="browse">${ICONS.browse}<span>Browse</span></button>
+    <button type="button" data-tab="shop">${ICONS.shop}<span>Shop</span></button>
     <button type="button" data-tab="more">${ICONS.more}<span>More</span></button>
   </div></nav>`;
 
@@ -48,6 +51,7 @@ const openItem = (id) => { fromTab = tab === "item" ? fromTab : tab; show("item"
 const home = mountHome(el("s-home"), { onOpenItem: openItem, onImport: () => show("more"), syncText });
 const browse = mountBrowse(el("s-browse"), { onOpenItem: openItem });
 const item = mountItem(el("s-item"), { onBack: () => history.length > 1 ? history.back() : show(fromTab) });
+const shop = mountShop(el("s-shop"), { onOpenItem: openItem });
 const more = mountMore(el("s-more"), {
   onConnect: () => connectAndSync({ allowOffline: false }),
   onDisconnect: async () => { await disconnect(); setSync(await configState()); more.render(); },
@@ -57,12 +61,13 @@ function render() {
   if (tab === "home") home.render();
   if (tab === "browse") browse.render();
   if (tab === "item") item.render();
+  if (tab === "shop") shop.render();
   if (tab === "more") more.render();
 }
 
 function show(next, id = null, { push = true } = {}) {
   tab = next;
-  ["home", "browse", "item", "more"].forEach((k) => { el(`s-${k}`).hidden = k !== next; });
+  ["home", "browse", "item", "shop", "more"].forEach((k) => { el(`s-${k}`).hidden = k !== next; });
   document.querySelectorAll("[data-tab]").forEach((b) => {
     const on = b.dataset.tab === (next === "item" ? fromTab : next);
     if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
@@ -77,7 +82,7 @@ function show(next, id = null, { push = true } = {}) {
 function fromHash() {
   const [, name, id] = (location.hash || "#/home").split("/");
   if (name === "item" && id) show("item", id, { push: false });
-  else show(["home", "browse", "more"].includes(name) ? name : "home", null, { push: false });
+  else show(["home", "browse", "shop", "more"].includes(name) ? name : "home", null, { push: false });
 }
 
 document.querySelector(".nav").addEventListener("click", (e) => {

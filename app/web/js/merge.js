@@ -27,8 +27,15 @@ export function mergeDocs(local, remote) {
     if (!r || (l.updatedAt || 0) >= (r.updatedAt || 0)) purchases.set(l.id, l);
   });
 
+  const shopping = byId(remote.shopping);
+  (local.shopping || []).forEach((l) => {
+    const r = shopping.get(l.id);
+    if (!r || (l.updatedAt || 0) >= (r.updatedAt || 0)) shopping.set(l.id, l);
+  });
+
   return {
     items: [...items.values()],
+    shopping: [...shopping.values()],
     purchases: [...purchases.values()],
     settings: { ...(remote.settings || {}), ...(local.settings || {}) },
   };

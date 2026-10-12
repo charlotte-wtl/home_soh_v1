@@ -1,7 +1,7 @@
 // Item detail: how much is left, the buttons, then history, prices and cost.
 
 import * as M from "./model.js";
-import { doc, change, undo } from "./store.js";
+import { doc, change, undo, getMe } from "./store.js";
 import { shortDate, todayStr } from "./dates.js";
 import { esc, openSheet, toast, formData } from "./ui.js";
 import { leftText, statusTag } from "./rows.js";
@@ -23,6 +23,7 @@ export function mountItem(el, { onBack }) {
     const spent = M.spentInYear(d, new Date().getFullYear(), item.id).total;
     const consumable = item.consumable !== false;
     const pausedUnit = st.pausedOpen[0];
+    const onList = M.liveList(d).some((s) => !s.done && s.itemId === item.id);
 
     el.innerHTML = `
       <button type="button" class="back" data-back>‹ Back</button>
@@ -59,6 +60,8 @@ export function mountItem(el, { onBack }) {
           }).join("")}</tbody></table><p class="hint">Tap a row to change its dates.</p>` : `<p class="empty">Not opened yet.</p>`}
       </section>` : `<div class="hero"><p class="soft">Kept for price and history. No reminders for ${esc(item.category)}.</p>
         <div class="btn-row"><button type="button" class="btn primary" data-a="bought">Bought</button></div></div>`}
+
+      ${onList ? `<p class="soft small" style="margin-top:16px">On your shopping list.</p>` : `<button type="button" class="btn quiet" data-a="list" style="margin-top:12px">Add to shopping list</button>`}
 
       <section class="section">
         <div class="section-head"><h2>Prices</h2><span class="count">cheapest first</span></div>
@@ -118,6 +121,11 @@ export function mountItem(el, { onBack }) {
       if (a === "open") return openNow(itemId);
       if (a === "finish") return finishNow(itemId);
       if (a === "bought") return boughtSheet(itemId);
+      if (a === "list") {
+        const me = await getMe();
+        await change((d) => M.addToList(d, { itemId, by: me }));
+        return toast("Added to the shopping list", [{ label: "Undo", run: undo }]);
+      }
       if (a === "pause") return pauseSheet(itemId, st.active[0].id);
       if (a === "resume") return resumeNow(itemId, st.pausedOpen[0].id);
     }
