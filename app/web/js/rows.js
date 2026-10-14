@@ -3,7 +3,7 @@
 import * as M from "./model.js";
 import { shortDate } from "./dates.js";
 import { esc } from "./ui.js";
-import { doc } from "./store.js";
+import { doc, meNow } from "./store.js";
 
 export function leftText(st) {
   if (st.status === "learning") return "Learning how long it lasts";
@@ -27,7 +27,8 @@ export function statusTag(status) {
   return `<span class="status ${status}">${M.STATUS_LABEL[status]}</span>`;
 }
 
-const owner = (item) => (item.owner ? ` <span class="brand">· ${esc(M.people(doc())[item.owner] || "")}</span>` : "");
+// Only other people's things get a name; yours are the default.
+const owner = (item) => (item.owner && item.owner !== meNow() ? ` <span class="brand">· ${esc(M.people(doc())[item.owner] || "")}</span>` : "");
 
 // One short reason, shown after a status word (never repeats the word).
 function reasonText(st) {
@@ -44,14 +45,14 @@ function reasonText(st) {
 }
 
 // opts.action: html for a button on the right; opts.tag: status word + reason
-export function itemRow(st, { action = "", tag = false, level = true } = {}) {
+export function itemRow(st, { action = "", tag = false, level = true, note = "" } = {}) {
   const item = st.item;
   const showLevel = level && st.current && !st.item.archived;
   return `<li class="row">
     <button type="button" class="row-link" data-item="${item.id}">
       <span class="name">${esc(M.itemName(item))}${owner(item)}</span>
       ${showLevel ? `<span class="level" data-status="${st.status}" aria-hidden="true"><i style="width:${Math.round(st.current.pct * 100)}%"></i></span>` : ""}
-      ${tag ? `<span class="meta"><span>${statusTag(st.status)} ${esc(reasonText(st))}</span></span>`
+      ${tag ? `<span class="meta"><span>${statusTag(st.status)} ${esc(reasonText(st))}</span>${note ? `<span>${esc(note)}</span>` : ""}</span>`
         : `<span class="meta"><span>${esc(leftText(st))}</span><span>${esc(whenText(st))}</span></span>`}
     </button>
     ${action}

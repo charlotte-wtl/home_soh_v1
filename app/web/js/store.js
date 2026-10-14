@@ -11,6 +11,7 @@ let undoStack = [];
 export async function load() {
   current = (await getRecord()).doc;
   current.shopping = current.shopping || [];
+  await getMe();
   current.settings = { hkdRate: 5.3, warnDays: 14, pctLeft: 0.3, currency: "AUD", ...(current.settings || {}) };
   return current;
 }
@@ -47,5 +48,8 @@ async function persist() {
 }
 
 // Who is using this phone. Stored on the phone only, never synced.
-export const getMe = async () => (await getMeta("me")) || "p1";
-export const setMe = (who) => setMeta("me", who);
+let meCache = "p1";
+export const getMe = async () => (meCache = (await getMeta("me")) || "p1");
+export const setMe = (who) => { meCache = who; return setMeta("me", who); };
+// Last known value, for code that can't wait (e.g. drawing a list row).
+export const meNow = () => meCache;

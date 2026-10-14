@@ -8,7 +8,8 @@ import { itemRow } from "./rows.js";
 import { boughtSheet, finishNow, resumeNow, stillGoing, pauseSheet, editUnitSheet, logSheet, newProductSheet } from "./forms.js";
 
 export function mountHome(el, { onOpenItem, onImport, syncText }) {
-  const f = { q: "", cat: "All", who: "all" };
+  // One filter: "all", "cat:<category>" or "who:<person>".
+  const f = { q: "", show: "all" };
   let me = "p1";
 
   function greeting() {
@@ -18,8 +19,8 @@ export function mountHome(el, { onOpenItem, onImport, syncText }) {
   }
 
   function matches(item) {
-    if (f.cat !== "All" && item.category !== f.cat) return false;
-    if (f.who !== "all" && item.owner !== f.who) return false;
+    if (f.show.startsWith("cat:") && item.category !== f.show.slice(4)) return false;
+    if (f.show.startsWith("who:") && item.owner !== f.show.slice(4)) return false;
     if (f.q && !`${item.brand} ${item.product} ${item.type}`.toLowerCase().includes(f.q)) return false;
     return true;
   }
@@ -43,28 +44,36 @@ export function mountHome(el, { onOpenItem, onImport, syncText }) {
     const rem = M.reminders(d);
     const using = M.inUse(d).filter((s) => matches(s.item));
     const paused = M.pausedItems(d).filter((s) => matches(s.item));
-    const cats = ["All", ...M.categories(d).filter((c) => M.inUse(d).some((s) => s.item.category === c))];
-    const remCats = new Set(rem.map((r) => r.item.category));
+    const cats = M.categories(d).filter((c) => M.inUse(d).some((s) => s.item.category === c));
+    const onList = new Set(M.liveList(d).filter((s) => !s.done && s.itemId).map((s) => s.itemId));
+    const filtered = f.q || f.show !== "all";
+    // In use, grouped by category; soonest to run out first inside each group.
+    const groups = cats.map((c) => [c, using.filter((s) => s.item.category === c)]).filter(([, l]) => l.length);
+    const finishBtn = (st) => `<button type="button" class="btn" data-finish="${st.item.id}">Finished</button>`;
 
     el.innerHTML = `${head()}
       ${rem.length ? `<section class="section" aria-labelledby="remH" style="margin-top:8px">
         <div class="section-head"><h2 id="remH">Reminders <span class="count">${rem.length}</span></h2>
           ${M.listSuggestions(d).length ? `<button type="button" class="btn quiet" data-tolist>Add to shopping list</button>` : ""}</div>
-        <ul class="list panel">${rem.map((st) => itemRow(st, { tag: true, action: reminderAction(st) })).join("")}</ul>
+        <ul class="list panel">${rem.map((st) => itemRow(st, { tag: true, action: reminderAction(st), note: onList.has(st.item.id) ? "On list" : "" })).join("")}</ul>
       </section>` : `<p class="soft" style="margin-top:8px">Nothing to buy. ${nextLow(d)}</p>`}
 
-      <section class="section" aria-label="Filter">
-        <input class="search" type="search" placeholder="Search what you're using" aria-label="Search what you're using" value="${esc(f.q)}">
-        <div class="chips" role="group" aria-label="Category">${cats.map((c) => `<button type="button" class="chip" data-cat="${esc(c)}" aria-pressed="${c === f.cat}">${esc(c)}${remCats.has(c) ? '<span class="sr-only"> (has reminders)</span>' : ""}</button>`).join("")}</div>
-        <div class="seg" role="group" aria-label="Whose" style="margin-top:12px">
-          ${[["all", "Everyone"], ...Object.entries(M.people(d))].map(([v, l]) => `<button type="button" data-who="${v}" aria-pressed="${f.who === v}">${esc(l)}</button>`).join("")}
-        </div>
+      <section class="section filter-row" aria-label="Filter">
+        <input class="search" type="search" placeholder="Search" aria-label="Search what you're using" value="${esc(f.q)}">
+        <label class="sr-only" for="showSel">Show</label>
+        <select id="showSel" class="select-pill" data-show>
+          <option value="all" ${f.show === "all" ? "selected" : ""}>Everything</option>
+          <optgroup label="Category">${cats.map((c) => `<option value="cat:${esc(c)}" ${f.show === `cat:${c}` ? "selected" : ""}>${esc(c)}</option>`).join("")}</optgroup>
+          <optgroup label="Whose">${Object.entries(M.people(d)).map(([k, v]) => `<option value="who:${k}" ${f.show === `who:${k}` ? "selected" : ""}>${esc(v)}'s</option>`).join("")}</optgroup>
+        </select>
       </section>
 
       <section class="section" aria-labelledby="useH">
         <div class="section-head"><h2 id="useH">In use <span class="count">${using.length}</span></h2></div>
-        ${using.length ? `<ul class="list">${using.map((st) => itemRow(st, { action: `<button type="button" class="btn" data-finish="${st.item.id}">Finished</button>` })).join("")}</ul>`
-          : `<p class="empty">Nothing open${f.q || f.cat !== "All" || f.who !== "all" ? " matches these filters" : ""}.</p>`}
+        ${groups.length ? groups.map(([c, list]) => `<div class="group">
+            <h3 class="group-head">${esc(c)} <span class="count">${list.length}</span></h3>
+            <ul class="list">${list.map((st) => itemRow(st, { action: finishBtn(st) })).join("")}</ul></div>`).join("")
+          : `<p class="empty">Nothing open${filtered ? " matches this search or filter" : ""}.</p>`}
       </section>
 
       ${paused.length ? `<section class="section"><details class="fold"><summary><h2>Paused <span class="count">${paused.length}</span></h2></summary>
@@ -136,9 +145,13 @@ export function mountHome(el, { onOpenItem, onImport, syncText }) {
       return resumeNow(backup.id, u.id);
     }
     if ((b = btn("[data-resume-unit]"))) { const [i, u] = b.dataset.resumeUnit.split("|"); return resumeNow(i, u); }
-    if ((b = btn("[data-cat]"))) { f.cat = b.dataset.cat; return render(); }
-    if ((b = btn("[data-who]"))) { f.who = b.dataset.who; return render(); }
+
     if ((b = btn("[data-item]"))) return onOpenItem(b.dataset.item);
+  });
+  el.addEventListener("change", (e) => {
+    if (!e.target.matches("[data-show]")) return;
+    f.show = e.target.value;
+    render();
   });
   el.addEventListener("input", (e) => {
     if (!e.target.matches(".search")) return;

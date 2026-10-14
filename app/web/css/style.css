@@ -233,6 +233,20 @@ details.fold > summary::-webkit-details-marker { display: none; }
 details.fold > summary::after { content: "Show"; font-size: .875rem; color: var(--accent); }
 details.fold[open] > summary::after { content: "Hide"; }
 
+/* ---------- Home: one filter row, grouped In use ---------- */
+.filter-row { display: flex; gap: 8px; }
+.filter-row .search { flex: 1; min-width: 0; }
+.select-pill {
+  flex: none; max-width: 48%; min-height: var(--tap); padding: 0 34px 0 16px; font-size: 1rem;
+  border: 1px solid var(--control); border-radius: 999px; background: var(--surface); color: var(--ink);
+  -webkit-appearance: none; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: right 18px top 50%, right 13px top 50%; background-size: 5px 5px; background-repeat: no-repeat;
+}
+.group + .group { margin-top: 18px; }
+.group-head { font-family: var(--font-body); font-size: .875rem; font-weight: 600; color: var(--ink-soft); margin: 4px 0 2px; }
+.group-head .count { font-weight: 400; }
+
 /* ---------- Shopping list ---------- */
 .add-row { display: flex; gap: 8px; }
 .add-row .search { flex: 1; }
